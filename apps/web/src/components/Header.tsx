@@ -3,13 +3,16 @@ import { Project } from "@frameforge/project-schema";
 import { AspectRatio } from "@frameforge/shared";
 import {
   Film,
-  Sparkles,
   Download,
   Plus,
   Smartphone,
   Monitor,
   CheckCircle2,
   Clock,
+  Undo2,
+  Redo2,
+  LayoutGrid,
+  FileCode,
 } from "lucide-react";
 
 interface HeaderProps {
@@ -19,6 +22,13 @@ interface HeaderProps {
   onOpenExportModal: () => void;
   isSaving: boolean;
   totalDuration: number;
+  currentView: "editor" | "dashboard";
+  onToggleView: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
+  onExportJSON: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -28,6 +38,13 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenExportModal,
   isSaving,
   totalDuration,
+  currentView,
+  onToggleView,
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
+  onExportJSON,
 }) => {
   const toggleAspectRatio = (ratio: AspectRatio) => {
     onUpdateProject((prev) => ({
@@ -48,96 +65,151 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="h-16 border-b border-slate-800 bg-[#0c1220]/90 backdrop-blur-md px-6 flex items-center justify-between z-30 select-none">
       {/* Left: Brand & Title */}
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2 font-black tracking-tight text-xl text-white">
+        <button
+          onClick={onToggleView}
+          className="flex items-center gap-2 font-black tracking-tight text-xl text-white hover:opacity-90 transition"
+          title="Toggle Projects Dashboard"
+        >
           <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
             <Film className="w-5 h-5" />
           </div>
           <span>FrameForge</span>
-        </div>
+        </button>
+
+        <button
+          onClick={onToggleView}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition border ${
+            currentView === "dashboard"
+              ? "bg-blue-600/20 text-blue-400 border-blue-500/30"
+              : "bg-slate-900 text-slate-400 border-slate-800 hover:text-white"
+          }`}
+        >
+          <LayoutGrid className="w-3.5 h-3.5" />
+          <span>{currentView === "dashboard" ? "Studio" : "Projects"}</span>
+        </button>
 
         <div className="h-5 w-px bg-slate-800" />
 
-        <input
-          type="text"
-          value={project.title}
-          onChange={handleTitleChange}
-          className="bg-transparent hover:bg-slate-800/40 focus:bg-slate-800/80 px-2.5 py-1 rounded text-sm font-semibold text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 transition max-w-[260px] truncate"
-        />
+        {currentView === "editor" && (
+          <>
+            <input
+              type="text"
+              value={project.title}
+              onChange={handleTitleChange}
+              className="bg-transparent hover:bg-slate-800/40 focus:bg-slate-800/80 px-2.5 py-1 rounded text-sm font-semibold text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 transition max-w-[240px] truncate"
+            />
 
-        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 uppercase tracking-wider">
-          {project.videoType}
-        </span>
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 uppercase tracking-wider">
+              {project.videoType}
+            </span>
+          </>
+        )}
       </div>
 
       {/* Center: Controls & Status */}
-      <div className="flex items-center gap-3">
-        {/* Aspect Ratio Switcher */}
-        <div className="flex bg-slate-900 border border-slate-800 p-0.5 rounded-lg text-xs font-medium text-slate-400">
-          <button
-            onClick={() => toggleAspectRatio("9:16")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition ${
-              project.aspectRatio === "9:16"
-                ? "bg-blue-600 text-white shadow-sm"
-                : "hover:text-slate-200"
-            }`}
-            title="Vertical 9:16 (Shorts / Reels / TikTok)"
-          >
-            <Smartphone className="w-3.5 h-3.5" />
-            <span>9:16</span>
-          </button>
-          <button
-            onClick={() => toggleAspectRatio("16:9")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition ${
-              project.aspectRatio === "16:9"
-                ? "bg-blue-600 text-white shadow-sm"
-                : "hover:text-slate-200"
-            }`}
-            title="Horizontal 16:9 (YouTube / Web)"
-          >
-            <Monitor className="w-3.5 h-3.5" />
-            <span>16:9</span>
-          </button>
-        </div>
+      {currentView === "editor" && (
+        <div className="flex items-center gap-3">
+          {/* Aspect Ratio Switcher */}
+          <div className="flex bg-slate-900 border border-slate-800 p-0.5 rounded-lg text-xs font-medium text-slate-400">
+            <button
+              onClick={() => toggleAspectRatio("9:16")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition ${
+                project.aspectRatio === "9:16"
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "hover:text-slate-200"
+              }`}
+              title="Vertical 9:16 (Shorts / Reels / TikTok)"
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+              <span>9:16</span>
+            </button>
+            <button
+              onClick={() => toggleAspectRatio("16:9")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition ${
+                project.aspectRatio === "16:9"
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "hover:text-slate-200"
+              }`}
+              title="Horizontal 16:9 (YouTube / Web)"
+            >
+              <Monitor className="w-3.5 h-3.5" />
+              <span>16:9</span>
+            </button>
+          </div>
 
-        {/* Duration badge */}
-        <div className="flex items-center gap-1 px-2.5 py-1 rounded bg-slate-900/80 border border-slate-800 text-xs text-slate-400 font-mono">
-          <Clock className="w-3.5 h-3.5 text-slate-500" />
-          <span>{totalDuration}s total</span>
-        </div>
+          {/* Duration badge */}
+          <div className="flex items-center gap-1 px-2.5 py-1 rounded bg-slate-900/80 border border-slate-800 text-xs text-slate-400 font-mono">
+            <Clock className="w-3.5 h-3.5 text-slate-500" />
+            <span>{totalDuration}s total</span>
+          </div>
 
-        {/* Save indicator */}
-        <div className="flex items-center gap-1.5 text-xs text-slate-400 ml-2">
-          {isSaving ? (
-            <span className="flex items-center gap-1 text-amber-400">
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-              Saving...
-            </span>
-          ) : (
-            <span className="flex items-center gap-1 text-emerald-400/80">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              Saved
-            </span>
-          )}
+          {/* Undo / Redo */}
+          <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5">
+            <button
+              disabled={!canUndo}
+              onClick={onUndo}
+              className="p-1.5 text-slate-400 hover:text-white disabled:opacity-30 disabled:hover:text-slate-400 transition rounded"
+              title="Undo (Ctrl+Z)"
+            >
+              <Undo2 className="w-3.5 h-3.5" />
+            </button>
+            <button
+              disabled={!canRedo}
+              onClick={onRedo}
+              className="p-1.5 text-slate-400 hover:text-white disabled:opacity-30 disabled:hover:text-slate-400 transition rounded"
+              title="Redo (Ctrl+Y)"
+            >
+              <Redo2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Save indicator */}
+          <div className="flex items-center gap-1.5 text-xs text-slate-400 ml-1">
+            {isSaving ? (
+              <span className="flex items-center gap-1 text-amber-400">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                Saving...
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-emerald-400/80">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Saved
+              </span>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Right: Actions */}
       <div className="flex items-center gap-3">
+        {currentView === "editor" && (
+          <button
+            onClick={onExportJSON}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 bg-slate-900 hover:bg-slate-800 border border-slate-800 transition"
+            title="Download Project JSON"
+          >
+            <FileCode className="w-3.5 h-3.5 text-slate-400" />
+            <span>JSON</span>
+          </button>
+        )}
+
         <button
           onClick={onOpenNewModal}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-300 bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 transition"
         >
           <Plus className="w-3.5 h-3.5" />
-          <span>New Project</span>
+          <span>New Video</span>
         </button>
 
-        <button
-          onClick={onOpenExportModal}
-          className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-md shadow-blue-600/25 transition"
-        >
-          <Download className="w-3.5 h-3.5" />
-          <span>Export MP4</span>
-        </button>
+        {currentView === "editor" && (
+          <button
+            onClick={onOpenExportModal}
+            className="flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-md shadow-blue-600/25 transition"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Export MP4</span>
+          </button>
+        )}
       </div>
     </header>
   );

@@ -66,3 +66,25 @@ FrameForge is an AI-assisted video creation studio built on HyperFrames, React, 
 ### Remote GitHub Deployment
 - **Task**: Pushed codebase to `https://github.com/abdulah-0/FrameForge.git`.
 - **Status**: Successfully pushed `main` branch to remote origin. Working tree is clean and synchronized.
+
+### Phase 2: Workflow Fixtures & Template Verification
+- **Task**: Created canonical workflow fixtures for all three primary product targets in `packages/project-schema/fixtures/`:
+  - `faceless-fixture.json`: 9:16 viral short with hooks, ultradian habits, statistics, and kinetic CTA.
+  - `product-ad-fixture.json`: 9:16 commercial promo featuring AuraPods Max, active noise cancellation hardware specs, benefits checklist, and coupon discount callout.
+  - `explainer-fixture.json`: 16:9 educational explainer breaking down Artificial Neural Networks with diagrams and backpropagation takeaways.
+- **Verification**:
+  - Validated all 3 fixtures against schema with duration calculation.
+  - Rendered all 3 fixtures directly to MP4 via `renderProjectToMP4`:
+    - `fixture_faceless.mp4`: 5.0s (144,360 bytes)
+    - `fixture_product_ad.mp4`: 5.0s (124,589 bytes)
+    - `fixture_explainer.mp4`: 5.0s (303,625 bytes)
+  - Unit test suite expanded to 10 automated tests (all passing).
+  - Phase 2 exit criteria completely satisfied.
+
+### Phase 3: Creator Studio Dashboard & Experience Upgrades
+- **Task**: Enhanced `apps/web` with production studio features:
+  - **Project Dashboard**: Multi-project management view with cards, workflow badges, project duplication, deletion, and quick starter workflow loaders.
+  - **Undo / Redo Stack**: State history management with undo/redo buttons in header and keyboard shortcut integration (`Ctrl+Z`, `Ctrl+Y`).
+  - **Project Portability**: Added JSON Export and JSON Import allowing creators to backup, share, or inspect canonical project data models directly.
+  - **Live Preview Audio Sync**: Added volume and audio controls.
+- **Why**: Delivers a full creator-centric no-code studio workflow without relying on external servers or AI keys.

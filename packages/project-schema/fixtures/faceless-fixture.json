@@ -1,0 +1,85 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectId": "fixture_faceless_001",
+  "title": "3 Habits That Skyrocket Your Focus",
+  "videoType": "faceless",
+  "aspectRatio": "9:16",
+  "fps": 30,
+  "scenes": [
+    {
+      "id": "scene_1",
+      "layout": "hook",
+      "durationSeconds": 3.0,
+      "headline": "STOP RUINING YOUR FOCUS",
+      "body": "90% of people make this exact mistake every morning.",
+      "caption": "MINDSET HACK",
+      "narrationText": "Stop ruining your focus. Most people make this critical mistake every morning.",
+      "media": {
+        "type": "image",
+        "url": "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=1080&q=80",
+        "fit": "cover"
+      },
+      "motion": "pop-in"
+    },
+    {
+      "id": "scene_2",
+      "layout": "text-over-media",
+      "durationSeconds": 3.5,
+      "headline": "Habit #1: The 90-Minute Rule",
+      "body": "Work in ultradian cycles before checking any notifications.",
+      "caption": "SCIENCE BACKED",
+      "narrationText": "Habit number one: Work in ninety-minute uninterrupted blocks before touching your phone.",
+      "media": {
+        "type": "image",
+        "url": "https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=1080&q=80",
+        "fit": "cover"
+      },
+      "motion": "slide-up"
+    },
+    {
+      "id": "scene_3",
+      "layout": "statistic-chart",
+      "durationSeconds": 3.5,
+      "headline": "+240% Productivity",
+      "body": "Peer-reviewed studies confirm deep work blocks triple daily output.",
+      "caption": "HARVARD STUDY",
+      "narrationText": "Researchers found deep work blocks increase high-value productivity by over two hundred percent.",
+      "media": {
+        "type": "none"
+      },
+      "motion": "zoom-cut"
+    },
+    {
+      "id": "scene_4",
+      "layout": "call-to-action",
+      "durationSeconds": 3.0,
+      "headline": "FOLLOW FOR DAILY TIPS",
+      "body": "Save this video and share it with someone who needs it.",
+      "caption": "LEVEL UP TODAY",
+      "narrationText": "Follow for more daily productivity insights and share this with a friend.",
+      "media": {
+        "type": "none"
+      },
+      "motion": "pop-in"
+    }
+  ],
+  "branding": {
+    "primaryColor": "#f97316",
+    "secondaryColor": "#ea580c",
+    "backgroundColor": "#090d16",
+    "textColor": "#ffffff",
+    "fontFamily": "Inter, sans-serif",
+    "logoUrl": ""
+  },
+  "audio": {
+    "musicUrl": "",
+    "musicVolume": 0.35,
+    "narrationUrl": "",
+    "narrationVolume": 1.0
+  },
+  "metadata": {
+    "createdAt": "2026-10-04T12:00:00.000Z",
+    "updatedAt": "2026-10-04T12:00:00.000Z",
+    "briefPrompt": "Viral productivity tips for TikTok/Shorts"
+  }
+}

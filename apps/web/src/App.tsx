@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Project,
   Scene,
   createDefaultProject,
   calculateTotalDuration,
+  validateProject,
 } from "@frameforge/project-schema";
-import { MockAIProvider, GeminiAIProvider } from "@frameforge/providers";
+import { MockAIProvider } from "@frameforge/providers";
 import { Header } from "./components/Header";
 import { SceneList } from "./components/SceneList";
 import { PreviewPlayer } from "./components/PreviewPlayer";
@@ -13,24 +14,51 @@ import { PropertyInspector } from "./components/PropertyInspector";
 import { NewProjectModal } from "./components/NewProjectModal";
 import { ExportModal } from "./components/ExportModal";
 import { MediaPickerModal } from "./components/MediaPickerModal";
+import { Dashboard } from "./components/Dashboard";
 
-const STORAGE_KEY = "frameforge_active_project_v1";
+const PROJECTS_STORAGE_KEY = "frameforge_projects_collection_v1";
+const ACTIVE_ID_STORAGE_KEY = "frameforge_active_project_id_v1";
 
 export const App: React.FC = () => {
-  const [project, setProject] = useState<Project>(() => {
+  // Load saved projects list or initialize with starter demo
+  const [projects, setProjects] = useState<Project[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
+      const saved = localStorage.getItem(PROJECTS_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
     } catch {}
-    return createDefaultProject({
-      title: "FrameForge Studio Demo",
-      videoType: "product-ad",
-      aspectRatio: "9:16",
-    });
+    return [
+      createDefaultProject({
+        title: "AuraPods Commercial",
+        videoType: "product-ad",
+        aspectRatio: "9:16",
+      }),
+    ];
   });
 
+  const [activeProjectId, setActiveProjectId] = useState<string>(() => {
+    try {
+      const savedId = localStorage.getItem(ACTIVE_ID_STORAGE_KEY);
+      if (savedId) return savedId;
+    } catch {}
+    return projects[0]?.projectId || "proj_1";
+  });
+
+  const [currentView, setCurrentView] = useState<"editor" | "dashboard">("editor");
+
+  // History stack for Undo / Redo
+  const [history, setHistory] = useState<{
+    past: Project[];
+    future: Project[];
+  }>({ past: [], future: [] });
+
+  const activeProject =
+    projects.find((p) => p.projectId === activeProjectId) || projects[0];
+
   const [selectedSceneId, setSelectedSceneId] = useState<string>(() => {
-    return project.scenes[0]?.id || "scene_1";
+    return activeProject?.scenes[0]?.id || "scene_1";
   });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -39,29 +67,100 @@ export const App: React.FC = () => {
   const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
 
-  // Autosave to localStorage
+  // Sync projects to localStorage
   useEffect(() => {
     setIsSaving(true);
     const timer = setTimeout(() => {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(project));
+        localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(projects));
+        localStorage.setItem(ACTIVE_ID_STORAGE_KEY, activeProjectId);
       } catch (err) {
-        console.error("Autosave error:", err);
+        console.error("Storage save error:", err);
       }
       setIsSaving(false);
-    }, 500);
+    }, 400);
 
     return () => clearTimeout(timer);
-  }, [project]);
+  }, [projects, activeProjectId]);
+
+  const updateCurrentProject = useCallback(
+    (updater: (prev: Project) => Project) => {
+      setProjects((allProjects) => {
+        const curr = allProjects.find((p) => p.projectId === activeProjectId);
+        if (!curr) return allProjects;
+
+        const next = updater(curr);
+
+        // Record history
+        setHistory((h) => ({
+          past: [...h.past.slice(-25), curr],
+          future: [],
+        }));
+
+        return allProjects.map((p) => (p.projectId === activeProjectId ? next : p));
+      });
+    },
+    [activeProjectId]
+  );
+
+  // Undo / Redo handlers
+  const handleUndo = useCallback(() => {
+    if (history.past.length === 0) return;
+    const previous = history.past[history.past.length - 1];
+    const newPast = history.past.slice(0, -1);
+
+    setHistory((h) => ({
+      past: newPast,
+      future: [activeProject, ...h.future],
+    }));
+
+    setProjects((all) =>
+      all.map((p) => (p.projectId === activeProjectId ? previous : p))
+    );
+  }, [history, activeProject, activeProjectId]);
+
+  const handleRedo = useCallback(() => {
+    if (history.future.length === 0) return;
+    const next = history.future[0];
+    const newFuture = history.future.slice(1);
+
+    setHistory((h) => ({
+      past: [...h.past, activeProject],
+      future: newFuture,
+    }));
+
+    setProjects((all) =>
+      all.map((p) => (p.projectId === activeProjectId ? next : p))
+    );
+  }, [history, activeProject, activeProjectId]);
+
+  // Keyboard shortcut listener for Ctrl+Z and Ctrl+Y
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "z") {
+        if (e.shiftKey) {
+          handleRedo();
+        } else {
+          handleUndo();
+        }
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "y") {
+        handleRedo();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleUndo, handleRedo]);
 
   const selectedScene =
-    project.scenes.find((s) => s.id === selectedSceneId) || project.scenes[0];
+    activeProject.scenes.find((s) => s.id === selectedSceneId) ||
+    activeProject.scenes[0];
 
-  const totalDuration = calculateTotalDuration(project.scenes);
+  const totalDuration = calculateTotalDuration(activeProject.scenes);
 
   // Scene Operations
   const handleUpdateScene = (updated: Scene) => {
-    setProject((prev) => ({
+    updateCurrentProject((prev) => ({
       ...prev,
       scenes: prev.scenes.map((s) => (s.id === updated.id ? updated : s)),
     }));
@@ -73,15 +172,15 @@ export const App: React.FC = () => {
       id: newId,
       layout,
       durationSeconds: 3.5,
-      headline: "New Key Highlight",
-      body: "Describe the essential takeaway or point here.",
-      caption: "NEW HIGHLIGHT",
-      narrationText: "Here is an important point to note.",
+      headline: "New Key Point",
+      body: "Describe the essential details or benefits here.",
+      caption: "KEY HIGHLIGHT",
+      narrationText: "Here is an important point to remember.",
       media: { type: "none" },
       motion: "smooth-fade",
     };
 
-    setProject((prev) => ({
+    updateCurrentProject((prev) => ({
       ...prev,
       scenes: [...prev.scenes, newScene],
     }));
@@ -89,9 +188,9 @@ export const App: React.FC = () => {
   };
 
   const handleDeleteScene = (id: string) => {
-    if (project.scenes.length <= 3) return; // Keep at least 3 scenes per PRD limits
-    const remaining = project.scenes.filter((s) => s.id !== id);
-    setProject((prev) => ({
+    if (activeProject.scenes.length <= 3) return;
+    const remaining = activeProject.scenes.filter((s) => s.id !== id);
+    updateCurrentProject((prev) => ({
       ...prev,
       scenes: remaining,
     }));
@@ -101,7 +200,7 @@ export const App: React.FC = () => {
   };
 
   const handleDuplicateScene = (id: string) => {
-    const target = project.scenes.find((s) => s.id === id);
+    const target = activeProject.scenes.find((s) => s.id === id);
     if (!target) return;
 
     const dupId = `scene_${Date.now()}`;
@@ -111,11 +210,11 @@ export const App: React.FC = () => {
       headline: `${target.headline} (Copy)`,
     };
 
-    const targetIdx = project.scenes.findIndex((s) => s.id === id);
-    const updated = [...project.scenes];
+    const targetIdx = activeProject.scenes.findIndex((s) => s.id === id);
+    const updated = [...activeProject.scenes];
     updated.splice(targetIdx + 1, 0, duplicate);
 
-    setProject((prev) => ({
+    updateCurrentProject((prev) => ({
       ...prev,
       scenes: updated,
     }));
@@ -124,13 +223,13 @@ export const App: React.FC = () => {
 
   const handleMoveScene = (index: number, direction: "up" | "down") => {
     const targetIndex = direction === "up" ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= project.scenes.length) return;
+    if (targetIndex < 0 || targetIndex >= activeProject.scenes.length) return;
 
-    const updated = [...project.scenes];
+    const updated = [...activeProject.scenes];
     const [moved] = updated.splice(index, 1);
     updated.splice(targetIndex, 0, moved);
 
-    setProject((prev) => ({
+    updateCurrentProject((prev) => ({
       ...prev,
       scenes: updated,
     }));
@@ -151,9 +250,11 @@ export const App: React.FC = () => {
         aspectRatio: opts.aspectRatio,
         briefPrompt: opts.topic,
       });
-      setProject(fresh);
+      setProjects((all) => [fresh, ...all]);
+      setActiveProjectId(fresh.projectId);
       setSelectedSceneId(fresh.scenes[0].id);
       setIsNewModalOpen(false);
+      setCurrentView("editor");
       return;
     }
 
@@ -165,9 +266,11 @@ export const App: React.FC = () => {
         videoType: opts.videoType,
         aspectRatio: opts.aspectRatio,
       });
-      setProject(generated);
+      setProjects((all) => [generated, ...all]);
+      setActiveProjectId(generated.projectId);
       setSelectedSceneId(generated.scenes[0].id);
       setIsNewModalOpen(false);
+      setCurrentView("editor");
     } catch (err: any) {
       alert(`AI Generation error: ${err.message}`);
     } finally {
@@ -175,53 +278,141 @@ export const App: React.FC = () => {
     }
   };
 
+  const handleDuplicateProject = (id: string) => {
+    const target = projects.find((p) => p.projectId === id);
+    if (!target) return;
+
+    const copyId = `proj_${Date.now()}`;
+    const copy: Project = {
+      ...target,
+      projectId: copyId,
+      title: `${target.title} (Copy)`,
+    };
+
+    setProjects((all) => [copy, ...all]);
+    setActiveProjectId(copyId);
+  };
+
+  const handleDeleteProject = (id: string) => {
+    if (projects.length <= 1) return;
+    const remaining = projects.filter((p) => p.projectId !== id);
+    setProjects(remaining);
+    if (activeProjectId === id) {
+      setActiveProjectId(remaining[0].projectId);
+      setSelectedSceneId(remaining[0].scenes[0]?.id || "scene_1");
+    }
+  };
+
+  const handleImportProject = (imported: unknown) => {
+    const val = validateProject(imported);
+    if (!val.success) {
+      alert(`Invalid project JSON: ${val.errors?.join(", ")}`);
+      return;
+    }
+    const clean = val.data!;
+    clean.projectId = `proj_imported_${Date.now()}`;
+    setProjects((all) => [clean, ...all]);
+    setActiveProjectId(clean.projectId);
+    setSelectedSceneId(clean.scenes[0].id);
+    setCurrentView("editor");
+  };
+
+  const handleExportJSON = () => {
+    const blob = new Blob([JSON.stringify(activeProject, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${activeProject.title.replace(/\s+/g, "_")}_project.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleLoadFixture = (type: "faceless" | "product-ad" | "explainer") => {
+    const fresh = createDefaultProject({
+      title: `${type === "faceless" ? "3 Focus Secrets" : type === "product-ad" ? "AuraPods Commercial" : "Neural Networks Explainer"}`,
+      videoType: type,
+      aspectRatio: type === "explainer" ? "16:9" : "9:16",
+    });
+    setProjects((all) => [fresh, ...all]);
+    setActiveProjectId(fresh.projectId);
+    setSelectedSceneId(fresh.scenes[0].id);
+    setCurrentView("editor");
+  };
+
   return (
     <div className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col font-sans">
       {/* Top Header Navigation */}
       <Header
-        project={project}
-        onUpdateProject={setProject}
+        project={activeProject}
+        onUpdateProject={updateCurrentProject}
         onOpenNewModal={() => setIsNewModalOpen(true)}
         onOpenExportModal={() => setIsExportModalOpen(true)}
         isSaving={isSaving}
         totalDuration={totalDuration}
+        currentView={currentView}
+        onToggleView={() =>
+          setCurrentView((v) => (v === "editor" ? "dashboard" : "editor"))
+        }
+        canUndo={history.past.length > 0}
+        canRedo={history.future.length > 0}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        onExportJSON={handleExportJSON}
       />
 
-      {/* Main Studio 3-Column Layout */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left: Scene List */}
-        <SceneList
-          scenes={project.scenes}
-          selectedSceneId={selectedSceneId}
-          onSelectScene={setSelectedSceneId}
-          onAddScene={handleAddScene}
-          onDeleteScene={handleDeleteScene}
-          onDuplicateScene={handleDuplicateScene}
-          onMoveScene={handleMoveScene}
+      {/* Main View: Dashboard vs Studio Editor */}
+      {currentView === "dashboard" ? (
+        <Dashboard
+          projects={projects}
+          activeProjectId={activeProjectId}
+          onOpenProject={(id) => {
+            setActiveProjectId(id);
+            setCurrentView("editor");
+          }}
+          onNewProject={() => setIsNewModalOpen(true)}
+          onDuplicateProject={handleDuplicateProject}
+          onDeleteProject={handleDeleteProject}
+          onImportProject={handleImportProject}
+          onLoadFixture={handleLoadFixture}
         />
+      ) : (
+        <div className="flex-1 flex overflow-hidden">
+          {/* Left: Scene List */}
+          <SceneList
+            scenes={activeProject.scenes}
+            selectedSceneId={selectedSceneId}
+            onSelectScene={setSelectedSceneId}
+            onAddScene={handleAddScene}
+            onDeleteScene={handleDeleteScene}
+            onDuplicateScene={handleDuplicateScene}
+            onMoveScene={handleMoveScene}
+          />
 
-        {/* Center: Live Video Player Preview */}
-        <PreviewPlayer
-          project={project}
-          selectedSceneId={selectedSceneId}
-          onSelectScene={setSelectedSceneId}
-          totalDuration={totalDuration}
-        />
+          {/* Center: Live Video Player Preview */}
+          <PreviewPlayer
+            project={activeProject}
+            selectedSceneId={selectedSceneId}
+            onSelectScene={setSelectedSceneId}
+            totalDuration={totalDuration}
+          />
 
-        {/* Right: Scene, Branding & Audio Property Inspector */}
-        <PropertyInspector
-          project={project}
-          selectedScene={selectedScene}
-          onUpdateScene={handleUpdateScene}
-          onUpdateBranding={(branding) =>
-            setProject((prev) => ({ ...prev, branding }))
-          }
-          onUpdateAudio={(audio) =>
-            setProject((prev) => ({ ...prev, audio }))
-          }
-          onOpenMediaPicker={() => setIsMediaPickerOpen(true)}
-        />
-      </div>
+          {/* Right: Property Inspector */}
+          <PropertyInspector
+            project={activeProject}
+            selectedScene={selectedScene}
+            onUpdateScene={handleUpdateScene}
+            onUpdateBranding={(branding) =>
+              updateCurrentProject((prev) => ({ ...prev, branding }))
+            }
+            onUpdateAudio={(audio) =>
+              updateCurrentProject((prev) => ({ ...prev, audio }))
+            }
+            onOpenMediaPicker={() => setIsMediaPickerOpen(true)}
+          />
+        </div>
+      )}
 
       {/* Modals */}
       <NewProjectModal
@@ -234,7 +425,7 @@ export const App: React.FC = () => {
       <ExportModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
-        project={project}
+        project={activeProject}
         totalDuration={totalDuration}
       />
 

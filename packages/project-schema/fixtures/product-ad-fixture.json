@@ -1,0 +1,85 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectId": "fixture_product_ad_001",
+  "title": "AuraPods Max Commercial Promo",
+  "videoType": "product-ad",
+  "aspectRatio": "9:16",
+  "fps": 30,
+  "scenes": [
+    {
+      "id": "scene_1",
+      "layout": "hook",
+      "durationSeconds": 3.0,
+      "headline": "Pure Silence. Zero Distractions.",
+      "body": "Experience acoustic perfection designed for your everyday commute.",
+      "caption": "INTRODUCING AURAPODS",
+      "narrationText": "Pure silence, zero distractions. Meet the next generation of studio sound.",
+      "media": {
+        "type": "image",
+        "url": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1080&q=80",
+        "fit": "cover"
+      },
+      "motion": "smooth-fade"
+    },
+    {
+      "id": "scene_2",
+      "layout": "product-showcase",
+      "durationSeconds": 4.0,
+      "headline": "Active Noise Cancellation 2.0",
+      "body": "Custom titanium drivers with real-time adaptive sound calibration.",
+      "caption": "FLAGSHIP HARDWARE",
+      "narrationText": "Equipped with custom titanium drivers and military-grade active noise cancellation.",
+      "media": {
+        "type": "image",
+        "url": "https://images.unsplash.com/photo-1546435770-a3e426bf472b?auto=format&fit=crop&w=1080&q=80",
+        "fit": "cover"
+      },
+      "motion": "pop-in"
+    },
+    {
+      "id": "scene_3",
+      "layout": "benefits-listicle",
+      "durationSeconds": 4.0,
+      "headline": "Engineered for Everything",
+      "body": "• 48-Hour Ultra Battery\n• Featherlight Ergonomic Fit\n• Spatial Dolby Atmos Audio",
+      "caption": "KEY ADVANTAGES",
+      "narrationText": "Forty-eight hours of battery life, featherlight memory foam, and immersive spatial audio.",
+      "media": {
+        "type": "none"
+      },
+      "motion": "slide-up"
+    },
+    {
+      "id": "scene_4",
+      "layout": "call-to-action",
+      "durationSeconds": 3.0,
+      "headline": "Get 40% Off This Weekend",
+      "body": "Use code AURAPRO at checkout. Free worldwide shipping.",
+      "caption": "LIMITED STOCK",
+      "narrationText": "Order now to claim forty percent off with code AURAPRO.",
+      "media": {
+        "type": "none"
+      },
+      "motion": "pop-in"
+    }
+  ],
+  "branding": {
+    "primaryColor": "#3b82f6",
+    "secondaryColor": "#1d4ed8",
+    "backgroundColor": "#05070c",
+    "textColor": "#ffffff",
+    "fontFamily": "Inter, sans-serif",
+    "logoUrl": ""
+  },
+  "audio": {
+    "musicUrl": "",
+    "musicVolume": 0.4,
+    "narrationUrl": "",
+    "narrationVolume": 1.0
+  },
+  "metadata": {
+    "createdAt": "2026-10-04T12:00:00.000Z",
+    "updatedAt": "2026-10-04T12:00:00.000Z",
+    "briefPrompt": "High-converting headphones product commercial"
+  }
+}

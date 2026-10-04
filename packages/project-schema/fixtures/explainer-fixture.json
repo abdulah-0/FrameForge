@@ -1,0 +1,85 @@
+{
+  "schemaVersion": "1.0.0",
+  "projectId": "fixture_explainer_001",
+  "title": "Understanding Artificial Neural Networks",
+  "videoType": "explainer",
+  "aspectRatio": "16:9",
+  "fps": 30,
+  "scenes": [
+    {
+      "id": "scene_1",
+      "layout": "hook",
+      "durationSeconds": 4.0,
+      "headline": "How Do Neural Networks Actually Learn?",
+      "body": "A clear, visual breakdown of weights, biases, and gradient descent.",
+      "caption": "AI FUNDAMENTALS",
+      "narrationText": "How do artificial neural networks actually learn? Let us break down the core mechanics.",
+      "media": {
+        "type": "image",
+        "url": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1920&q=80",
+        "fit": "cover"
+      },
+      "motion": "smooth-fade"
+    },
+    {
+      "id": "scene_2",
+      "layout": "split-screen",
+      "durationSeconds": 4.5,
+      "headline": "From Neurons to Layers",
+      "body": "Inputs are multiplied by weights, summed together, and passed through nonlinear activation functions.",
+      "caption": "MATHEMATICAL CORE",
+      "narrationText": "Every neuron multiplies incoming values by weights, sums them, and applies an activation function.",
+      "media": {
+        "type": "image",
+        "url": "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1920&q=80",
+        "fit": "cover"
+      },
+      "motion": "slide-up"
+    },
+    {
+      "id": "scene_3",
+      "layout": "quote-takeaway",
+      "durationSeconds": 4.0,
+      "headline": "Optimization by Descent",
+      "body": "“Backpropagation calculates the exact direction to adjust weights to minimize loss.”",
+      "caption": "KEY TAKEAWAY",
+      "narrationText": "Through backpropagation and gradient descent, the network systematically reduces error.",
+      "media": {
+        "type": "none"
+      },
+      "motion": "pop-in"
+    },
+    {
+      "id": "scene_4",
+      "layout": "call-to-action",
+      "durationSeconds": 3.5,
+      "headline": "Master Modern AI Architecture",
+      "body": "Subscribe to explore deep learning series and code walkthroughs.",
+      "caption": "NEXT LESSON COMING SOON",
+      "narrationText": "Subscribe to follow along with the upcoming hands-on coding walkthroughs.",
+      "media": {
+        "type": "none"
+      },
+      "motion": "smooth-fade"
+    }
+  ],
+  "branding": {
+    "primaryColor": "#10b981",
+    "secondaryColor": "#059669",
+    "backgroundColor": "#090d16",
+    "textColor": "#ffffff",
+    "fontFamily": "Inter, sans-serif",
+    "logoUrl": ""
+  },
+  "audio": {
+    "musicUrl": "",
+    "musicVolume": 0.35,
+    "narrationUrl": "",
+    "narrationVolume": 1.0
+  },
+  "metadata": {
+    "createdAt": "2026-10-04T12:00:00.000Z",
+    "updatedAt": "2026-10-04T12:00:00.000Z",
+    "briefPrompt": "Machine learning visual explainer"
+  }
+}
