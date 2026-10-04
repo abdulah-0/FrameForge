@@ -1,0 +1,23 @@
+{
+  "name": "frameforge",
+  "version": "1.0.0",
+  "description": "HyperFrames-based AI Video Studio - MVP",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspaces --if-present",
+    "test": "node --experimental-strip-types --test tests/unit/*.test.ts",
+    "lint": "npm run lint --workspaces --if-present",
+    "render-worker": "npm run start --workspace=apps/render-worker"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  },
+  "author": "FrameForge Team",
+  "license": "MIT"
+}

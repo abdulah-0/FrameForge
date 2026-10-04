@@ -1,0 +1,21 @@
+{
+  "name": "@frameforge/render-worker",
+  "version": "1.0.0",
+  "description": "Deterministic MP4 render service for FrameForge using Chromium and FFmpeg",
+  "main": "./src/index.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc --build",
+    "start": "node --loader ts-node/esm src/server.ts",
+    "render": "node --loader ts-node/esm src/cli.ts"
+  },
+  "dependencies": {
+    "@frameforge/shared": "*",
+    "@frameforge/project-schema": "*",
+    "@frameforge/composition": "*",
+    "puppeteer-core": "^24.4.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}
