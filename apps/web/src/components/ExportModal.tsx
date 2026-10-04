@@ -50,7 +50,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       });
 
       if (!res.ok) {
-        throw new Error(`Worker responded with ${res.status}`);
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || `Worker returned HTTP ${res.status}`);
       }
 
       const data = await res.json();
@@ -74,28 +75,18 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             clearInterval(interval);
             setError(job.error || "Render encountered an error");
           }
-        } catch (err) {
+        } catch (err: any) {
           // Keep polling until timeout or success
         }
       }, 1000);
     } catch (err: any) {
-      // If standalone web UI without running worker server, simulate honest local export simulation or show CLI
-      setStage("rendering");
-      setProgress(40);
-      setStageMessage("Processing video frames in browser environment...");
-
-      setTimeout(() => {
-        setStage("encoding");
-        setProgress(85);
-        setStageMessage("Encoding H.264 MP4 container...");
-      }, 1500);
-
-      setTimeout(() => {
-        setStage("complete");
-        setProgress(100);
-        setStageMessage("Render finished! MP4 is ready.");
-        setDownloadUrl("#");
-      }, 3000);
+      setStage("failed");
+      setError(
+        err.message?.includes("Failed to fetch")
+          ? "Render worker not reachable on http://localhost:3100. Run 'npm run dev:all' or use the CLI command below."
+          : err.message || "Failed to initiate render"
+      );
+      setStageMessage("Render service unavailable or quota exceeded");
     }
   };
 

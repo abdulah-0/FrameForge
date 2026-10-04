@@ -10,8 +10,10 @@
   ],
   "scripts": {
     "dev": "npm run dev --workspace=apps/web",
+    "dev:worker": "npm run serve --workspace=apps/render-worker",
+    "dev:all": "node scripts/dev-all.js",
     "build": "npm run build --workspaces --if-present",
-    "test": "node --experimental-strip-types --test tests/unit/*.test.ts",
+    "test": "node --experimental-strip-types --test tests/**/*.test.ts",
     "lint": "npm run lint --workspaces --if-present",
     "render-worker": "npm run start --workspace=apps/render-worker"
   },

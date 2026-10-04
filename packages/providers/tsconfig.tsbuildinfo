@@ -1,1 +1,1 @@
-{"root":["./src/index.ts","./src/types.ts","./src/ai/gemini.ts","./src/ai/mock.ts","./src/media/curated.ts"],"version":"5.9.3"}
+{"root":["./src/index.ts","./src/types.ts","./src/ai/gemini.ts","./src/ai/mock.ts","./src/ai/ollama.ts","./src/media/curated.ts","./src/media/pexels.ts"],"version":"5.9.3"}

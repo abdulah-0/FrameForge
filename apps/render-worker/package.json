@@ -6,8 +6,9 @@
   "type": "module",
   "scripts": {
     "build": "tsc --build",
-    "start": "node --loader ts-node/esm src/server.ts",
-    "render": "node --loader ts-node/esm src/cli.ts"
+    "serve": "node --experimental-strip-types src/server.ts",
+    "start": "node --experimental-strip-types src/server.ts",
+    "render": "node --experimental-strip-types src/cli.ts"
   },
   "dependencies": {
     "@frameforge/shared": "*",

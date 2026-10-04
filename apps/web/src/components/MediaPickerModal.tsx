@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { CuratedMediaProvider, MediaItem } from "@frameforge/providers";
-import { X, Search, Image as ImageIcon, Link as LinkIcon, Check } from "lucide-react";
+import { validateImageSignature, ASSET_LIMITS } from "@frameforge/shared";
+import { X, Search, Image as ImageIcon, Link as LinkIcon, Check, Upload, AlertCircle } from "lucide-react";
 
 interface MediaPickerModalProps {
   isOpen: boolean;
@@ -16,7 +17,10 @@ export const MediaPickerModal: React.FC<MediaPickerModalProps> = ({
   const [query, setQuery] = useState("");
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
   const [customUrl, setCustomUrl] = useState("");
-  const [activeTab, setActiveTab] = useState<"curated" | "url">("curated");
+  const [activeTab, setActiveTab] = useState<"curated" | "upload" | "url">("curated");
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadedPreview, setUploadedPreview] = useState<{ url: string; name: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const provider = new CuratedMediaProvider();
 
@@ -29,6 +33,42 @@ export const MediaPickerModal: React.FC<MediaPickerModalProps> = ({
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     provider.search(query).then(setMediaItems);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadError(null);
+
+    // 1. Check size limit
+    if (file.size > ASSET_LIMITS.MAX_IMAGE_SIZE_BYTES) {
+      setUploadError(
+        `File is too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Max image size is 10MB.`
+      );
+      return;
+    }
+
+    try {
+      // 2. Validate file signature magic bytes
+      const arrayBuffer = await file.arrayBuffer();
+      const validation = validateImageSignature(arrayBuffer);
+
+      if (!validation.valid) {
+        setUploadError(validation.error || "Invalid image file signature.");
+        return;
+      }
+
+      // 3. Convert to safe data URI / blob URL for local studio preview and rendering
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        setUploadedPreview({ url: result, name: file.name });
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
+      setUploadError(`Failed to process image: ${err.message}`);
+    }
   };
 
   if (!isOpen) return null;
@@ -44,7 +84,7 @@ export const MediaPickerModal: React.FC<MediaPickerModalProps> = ({
             </div>
             <div>
               <h2 className="text-base font-bold text-white">Select Scene Media</h2>
-              <p className="text-xs text-slate-400">Curated royalty-free assets and safe custom URLs</p>
+              <p className="text-xs text-slate-400">Curated assets, verified uploads, and safe URLs</p>
             </div>
           </div>
 
@@ -67,6 +107,17 @@ export const MediaPickerModal: React.FC<MediaPickerModalProps> = ({
             }`}
           >
             Curated Stock Library
+          </button>
+
+          <button
+            onClick={() => setActiveTab("upload")}
+            className={`pb-3 text-xs font-semibold border-b-2 mr-6 transition ${
+              activeTab === "upload"
+                ? "border-blue-500 text-blue-400"
+                : "border-transparent text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            Upload Image
           </button>
 
           <button
@@ -131,6 +182,66 @@ export const MediaPickerModal: React.FC<MediaPickerModalProps> = ({
                   </div>
                 ))}
               </div>
+            </div>
+          ) : activeTab === "upload" ? (
+            <div className="space-y-4">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-slate-700 hover:border-blue-500 hover:bg-blue-950/10 rounded-2xl p-8 flex flex-col items-center justify-center text-center cursor-pointer transition group"
+              >
+                <div className="w-12 h-12 rounded-xl bg-slate-800 group-hover:bg-blue-600/20 text-slate-400 group-hover:text-blue-400 flex items-center justify-center mb-3 transition">
+                  <Upload className="w-6 h-6" />
+                </div>
+                <p className="text-xs font-semibold text-white">Click or drag image file here to upload</p>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Supported formats: JPEG, PNG, WebP (Max 10MB)
+                </p>
+                <p className="text-[10px] text-slate-500 mt-0.5 font-mono">
+                  Verified via binary signature / magic byte inspection
+                </p>
+              </div>
+
+              {uploadError && (
+                <div className="p-3 bg-red-950/40 border border-red-800/60 rounded-xl flex items-center gap-2 text-xs text-red-300">
+                  <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+                  <span>{uploadError}</span>
+                </div>
+              )}
+
+              {uploadedPreview && (
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-3">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-slate-300 truncate max-w-xs">
+                      {uploadedPreview.name}
+                    </span>
+                    <button
+                      onClick={() => {
+                        onSelectMedia({ url: uploadedPreview.url, alt: uploadedPreview.name });
+                        onClose();
+                      }}
+                      className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold flex items-center gap-1.5 transition text-xs shadow-md shadow-blue-600/30"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Use this Image</span>
+                    </button>
+                  </div>
+                  <div className="rounded-lg overflow-hidden border border-slate-800 h-40 bg-slate-950 flex items-center justify-center">
+                    <img
+                      src={uploadedPreview.url}
+                      alt="Uploaded preview"
+                      className="max-h-full max-w-full object-contain"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-4">

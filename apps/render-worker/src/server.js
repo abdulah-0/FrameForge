@@ -1,7 +1,9 @@
 import http from "node:http";
 import { resolve } from "node:path";
+import { existsSync, createReadStream, statSync } from "node:fs";
 import { renderProjectToMP4 } from "./renderer.js";
 import { validateProject } from "@frameforge/project-schema";
+import { LIMITS } from "@frameforge/shared";
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3100;
 const jobs = new Map();
 const server = http.createServer(async (req, res) => {
@@ -15,9 +17,34 @@ const server = http.createServer(async (req, res) => {
         return;
     }
     const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+    // Health check
     if (url.pathname === "/health" && req.method === "GET") {
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ status: "ok", service: "frameforge-render-worker" }));
+        res.end(JSON.stringify({ status: "ok", service: "frameforge-render-worker", port: PORT }));
+        return;
+    }
+    // Serve completed MP4 video files
+    if (url.pathname.startsWith("/renders/") && req.method === "GET") {
+        const filename = url.pathname.replace(/^\/renders\//, "");
+        // Prevent directory traversal
+        if (filename.includes("..") || filename.includes("/")) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "Invalid filename" }));
+            return;
+        }
+        const filePath = resolve(process.cwd(), "renders", filename);
+        if (!existsSync(filePath)) {
+            res.writeHead(404, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "Video file not found" }));
+            return;
+        }
+        const stat = statSync(filePath);
+        res.writeHead(200, {
+            "Content-Type": "video/mp4",
+            "Content-Length": stat.size,
+            "Content-Disposition": `inline; filename="${filename}"`,
+        });
+        createReadStream(filePath).pipe(res);
         return;
     }
     // POST /api/render-jobs
@@ -34,6 +61,14 @@ const server = http.createServer(async (req, res) => {
                     return;
                 }
                 const project = val.data;
+                // PRD Section 6.11: Quota check (max 30 seconds for cloud export)
+                if ((val.totalDurationSeconds || 0) > LIMITS.MAX_CLOUD_EXPORT_DURATION_SECONDS) {
+                    res.writeHead(400, { "Content-Type": "application/json" });
+                    res.end(JSON.stringify({
+                        error: `Project duration exceeds cloud export quota (${LIMITS.MAX_CLOUD_EXPORT_DURATION_SECONDS}s max).`,
+                    }));
+                    return;
+                }
                 const jobId = `job_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
                 const outputPath = resolve(process.cwd(), "renders", `${jobId}.mp4`);
                 const initialJob = {
@@ -68,7 +103,7 @@ const server = http.createServer(async (req, res) => {
                             j.progressPercent = 100;
                             j.stageMessage = "Video rendered successfully";
                             j.outputPath = outputPath;
-                            j.downloadUrl = `/renders/${jobId}.mp4`;
+                            j.downloadUrl = `http://localhost:${PORT}/renders/${jobId}.mp4`;
                             j.completedAt = new Date().toISOString();
                         }
                     }
@@ -100,6 +135,22 @@ const server = http.createServer(async (req, res) => {
         }
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify(job));
+        return;
+    }
+    // POST /api/render-jobs/:id/cancel
+    if (url.pathname.match(/\/api\/render-jobs\/[^/]+\/cancel/) && req.method === "POST") {
+        const parts = url.pathname.split("/");
+        const jobId = parts[parts.length - 2];
+        const job = jobId ? jobs.get(jobId) : null;
+        if (!job) {
+            res.writeHead(404, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ error: "Job not found" }));
+            return;
+        }
+        job.stage = "failed";
+        job.stageMessage = "Job cancelled by user";
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ status: "cancelled", jobId }));
         return;
     }
     res.writeHead(404, { "Content-Type": "application/json" });

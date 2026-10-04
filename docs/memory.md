@@ -88,3 +88,28 @@ FrameForge is an AI-assisted video creation studio built on HyperFrames, React, 
   - **Project Portability**: Added JSON Export and JSON Import allowing creators to backup, share, or inspect canonical project data models directly.
   - **Live Preview Audio Sync**: Added volume and audio controls.
 - **Why**: Delivers a full creator-centric no-code studio workflow without relying on external servers or AI keys.
+
+### Phase 4: Provider Adapters & Render Worker HTTP Service
+- **Task**: Completed AI/Media provider implementations, Render Worker HTTP API, and automated test coverage.
+- **Changes**:
+  - **Ollama AI Provider**: Added `OllamaAIProvider` in `packages/providers/src/ai/ollama.ts` supporting local LLMs (e.g. `llama3`, `mistral`, `qwen2.5`) with structured JSON storyboard prompting and scene regeneration.
+  - **Pexels Media Provider**: Added `PexelsMediaProvider` in `packages/providers/src/media/pexels.ts` with API key authentication, rate limit checks, orientation filtering (`portrait`, `landscape`), and commercial license attribution mapping.
+  - **Render Worker HTTP Service**: Implemented complete Node.js HTTP server (`apps/render-worker/src/server.ts`) supporting:
+    - `GET /health` with port and status check.
+    - `POST /api/render-jobs` accepting project JSON, verifying schema & 30s cloud quotas, returning 202 status and spawning async render.
+    - `GET /api/render-jobs/:id` polling job progress and stages (`queued` -> `preparing` -> `rendering` -> `encoding` -> `complete` / `failed`).
+    - `GET /renders/:filename` streaming rendered MP4 video files with path traversal protection.
+  - **Integration Test Suite**: Created `tests/integration/render-api.test.ts` covering `/health`, schema validation rejection (400), cloud quota violation rejection (400), and job lifecycle tracking (202).
+- **Verification**: 14 automated tests passing across unit and integration test suites.
+- **Why**: Fulfills PRD Section 8.3, 8.4, and 8.5 for provider independence and rendering service isolation.
+
+### Phase 5: Client-Side Upload Verification & Studio-Worker Integration
+- **Task**: Added binary file signature inspection for image uploads and integrated the studio web export modal with the render worker service.
+- **Changes**:
+  - **Binary Signature Validation**: Implemented `validateImageSignature` in `packages/shared/src/security.ts` checking magic bytes for JPEG (`FF D8 FF`), PNG (`89 50 4E 47 0D 0A 1A 0A`), and WebP (`RIFF .... WEBP`). Added size limits (10MB for images, 15MB for audio).
+  - **Media Picker Upload Tab**: Updated `apps/web/src/components/MediaPickerModal.tsx` to provide an interactive file dropzone that reads files as `ArrayBuffer`, validates magic bytes against spoofing/malicious files, and provides instant studio previews and scene application.
+  - **Export Modal Honest API Handling**: Connected `ExportModal.tsx` to `http://localhost:3100/api/render-jobs`. Displays honest worker feedback and quota notifications when cloud limits are exceeded or worker is offline.
+  - **Concurrent Development Script**: Created `scripts/dev-all.js` and added root `npm run dev:all` command to start both the Vite web studio (:3000) and the render worker (:3100) simultaneously.
+  - **Security Unit Tests**: Added `tests/unit/security.test.ts` verifying magic byte detection and rejection of malicious/truncated files.
+- **Verification**: 20 automated tests passing across 5 suites (`npm test`). Web build passes cleanly (`npm run build --workspace=apps/web`).
+- **Why**: Complies with PRD Section 12 (Security: validating file signatures and MIME types, not only file extensions) and streamlines creator developer experience.
