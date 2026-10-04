@@ -131,3 +131,11 @@ FrameForge is an AI-assisted video creation studio built on HyperFrames, React, 
   - **Database Authorization & RLS**:
     - Verified strict PostgreSQL Row Level Security (RLS) on all user-owned tables (`profiles`, `projects`, `assets`, `render_jobs`, `usage_events`).
 - **Verification**: 21/21 automated tests passing across 4 suites.
+
+### Phase 7: Production Deployment Strategy & Infrastructure Assets
+- **Task**: Prepared end-to-end deployment documentation and production artifacts per PRD Section 18.
+- **Changes**:
+  - **Production Dockerfile**: Created `apps/render-worker/Dockerfile` bundling Node.js 22 LTS, pinned Chromium, FFmpeg, fonts, non-root `node` user execution, and container health checks.
+  - **Configuration Templates**: Created `.env.example` segregating public `VITE_` browser variables from private server secrets (`RENDER_WORKER_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL`).
+  - **Deployment Manual**: Created `docs/deployment.md` documenting database setup on Supabase with migrations, worker deployment on Fly.io/Docker VPS with memory limits, and static frontend hosting on Vercel/Cloudflare Pages.
+- **Verification**: Built and validated production deployment artifacts cleanly.
