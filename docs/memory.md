@@ -62,3 +62,7 @@ FrameForge is an AI-assisted video creation studio built on HyperFrames, React, 
   - Exported horizontal (16:9) MP4: 1280x720 @ 30fps, 180 frames (6.0s), H.264 video container verified with `ffprobe`.
   - Verified unit test suite with Node.js native test runner: 7 tests passed (schema validation, duration calculation, composition generation).
   - Phase 1 exit criteria completely satisfied.
+
+### Remote GitHub Deployment
+- **Task**: Pushed codebase to `https://github.com/abdulah-0/FrameForge.git`.
+- **Status**: Successfully pushed `main` branch to remote origin. Working tree is clean and synchronized.
