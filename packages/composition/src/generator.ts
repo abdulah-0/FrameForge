@@ -1,6 +1,7 @@
 import {
   Project,
   calculateTotalDuration,
+  sanitizeText,
 } from "@frameforge/project-schema";
 import { RESOLUTIONS } from "@frameforge/shared";
 import { generateBaseCSS } from "./styles.js";
@@ -32,7 +33,9 @@ export function generateHyperframesHTML(
     const scene = project.scenes[i];
     const sceneStart = Number(currentStart.toFixed(2));
     const sceneDuration = scene.durationSeconds;
-    const sceneId = `scene_${scene.id}`;
+    // Strictly alphanumeric sceneId to prevent DOM injection
+    const safeId = String(scene.id).replace(/[^a-zA-Z0-9_-]/g, "");
+    const sceneId = `scene_${safeId || i}`;
 
     const innerHTML = renderSceneHTML(scene, i);
 
@@ -99,10 +102,11 @@ export function generateHyperframesHTML(
   // Audio elements
   let audioClips = "";
   if (project.audio.musicUrl) {
+    const safeMusic = sanitizeText(project.audio.musicUrl);
     audioClips += `
       <audio
         class="clip"
-        src="${project.audio.musicUrl}"
+        src="${safeMusic}"
         data-start="0"
         data-duration="${totalDuration}"
         data-volume="${project.audio.musicVolume}"
@@ -111,10 +115,11 @@ export function generateHyperframesHTML(
     `;
   }
   if (project.audio.narrationUrl) {
+    const safeNarration = sanitizeText(project.audio.narrationUrl);
     audioClips += `
       <audio
         class="clip"
-        src="${project.audio.narrationUrl}"
+        src="${safeNarration}"
         data-start="0"
         data-duration="${totalDuration}"
         data-volume="${project.audio.narrationVolume}"
@@ -125,14 +130,17 @@ export function generateHyperframesHTML(
 
   let logoHTML = "";
   if (project.branding.logoUrl) {
-    logoHTML = `<img src="${project.branding.logoUrl}" class="brand-logo" alt="Logo" />`;
+    const safeLogo = sanitizeText(project.branding.logoUrl);
+    logoHTML = `<img src="${safeLogo}" class="brand-logo" alt="Logo" />`;
   }
+
+  const safeTitle = sanitizeText(project.title);
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>${project.title}</title>
+  <title>${safeTitle}</title>
   <meta name="viewport" content="width=${width}, height=${height}, initial-scale=1.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

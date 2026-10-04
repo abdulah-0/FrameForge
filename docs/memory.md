@@ -113,3 +113,21 @@ FrameForge is an AI-assisted video creation studio built on HyperFrames, React, 
   - **Security Unit Tests**: Added `tests/unit/security.test.ts` verifying magic byte detection and rejection of malicious/truncated files.
 - **Verification**: 20 automated tests passing across 5 suites (`npm test`). Web build passes cleanly (`npm run build --workspace=apps/web`).
 - **Why**: Complies with PRD Section 12 (Security: validating file signatures and MIME types, not only file extensions) and streamlines creator developer experience.
+
+### Phase 6: Codebase Security Audit & Defensive Hardening
+- **Task**: Executed comprehensive security audit of the entire codebase mapped against PRD Section 12 ("Security, Privacy, and Abuse Prevention").
+- **Vulnerabilities Audited & Remediated**:
+  - **HTML/DOM Injection & XSS (PRD 12.2, 12.3)**:
+    - Fixed unescaped `body` rendering in `benefits-listicle` layout in `packages/composition/src/layouts.ts`.
+    - Added attribute escaping for `media.url` in `renderSceneHTML`.
+    - Sanitized `scene.id` to strictly alphanumeric strings in `generator.ts` to prevent DOM selector breakout.
+    - Sanitized `project.title`, `audio.musicUrl`, `audio.narrationUrl`, and `branding.logoUrl` in `generator.ts`.
+  - **Server-Side Request Forgery (SSRF) Defenses (PRD 12.6)**:
+    - Added `isSafeMediaUrl()` in `packages/shared/src/security.ts`.
+    - Enforced blocking of private IP ranges (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), cloud metadata endpoints (`169.254.169.254`, `metadata.google.internal`), and unapproved loopback addresses before queuing any render job in `apps/render-worker/src/server.ts`.
+    - Added automated integration test in `tests/integration/render-api.test.ts` verifying SSRF attempt rejections.
+  - **Denial of Service (DoS) Request Limiting**:
+    - Added `MAX_REQUEST_BODY_SIZE` (10MB) limit on incoming JSON payloads in `server.ts` with early connection destruction.
+  - **Database Authorization & RLS**:
+    - Verified strict PostgreSQL Row Level Security (RLS) on all user-owned tables (`profiles`, `projects`, `assets`, `render_jobs`, `usage_events`).
+- **Verification**: 21/21 automated tests passing across 4 suites.

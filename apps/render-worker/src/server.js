@@ -3,9 +3,10 @@ import { resolve } from "node:path";
 import { existsSync, createReadStream, statSync } from "node:fs";
 import { renderProjectToMP4 } from "./renderer.js";
 import { validateProject } from "@frameforge/project-schema";
-import { LIMITS } from "@frameforge/shared";
+import { LIMITS, isSafeMediaUrl } from "@frameforge/shared";
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3100;
 const jobs = new Map();
+const MAX_REQUEST_BODY_SIZE = 10 * 1024 * 1024; // 10MB limit for JSON payload
 const server = http.createServer(async (req, res) => {
     // CORS headers
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -50,8 +51,19 @@ const server = http.createServer(async (req, res) => {
     // POST /api/render-jobs
     if (url.pathname === "/api/render-jobs" && req.method === "POST") {
         let body = "";
-        req.on("data", (chunk) => (body += chunk));
+        let bodyExceeded = false;
+        req.on("data", (chunk) => {
+            body += chunk;
+            if (body.length > MAX_REQUEST_BODY_SIZE) {
+                bodyExceeded = true;
+                req.destroy();
+                res.writeHead(413, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: "Payload too large. Exceeds 10MB limit." }));
+            }
+        });
         req.on("end", async () => {
+            if (bodyExceeded)
+                return;
             try {
                 const payload = JSON.parse(body);
                 const val = validateProject(payload.project);
@@ -61,6 +73,23 @@ const server = http.createServer(async (req, res) => {
                     return;
                 }
                 const project = val.data;
+                // SSRF validation across all URLs in the project (PRD Section 12)
+                const urlsToCheck = [
+                    project.branding.logoUrl,
+                    project.audio.musicUrl,
+                    project.audio.narrationUrl,
+                    ...project.scenes.map((s) => s.media?.url),
+                ].filter(Boolean);
+                for (const u of urlsToCheck) {
+                    const check = isSafeMediaUrl(u);
+                    if (!check.safe) {
+                        res.writeHead(400, { "Content-Type": "application/json" });
+                        res.end(JSON.stringify({
+                            error: `Security violation (SSRF Prevention): ${check.error || "Unsafe URL detected."}`,
+                        }));
+                        return;
+                    }
+                }
                 // PRD Section 6.11: Quota check (max 30 seconds for cloud export)
                 if ((val.totalDurationSeconds || 0) > LIMITS.MAX_CLOUD_EXPORT_DURATION_SECONDS) {
                     res.writeHead(400, { "Content-Type": "application/json" });

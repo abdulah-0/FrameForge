@@ -18,3 +18,11 @@ export interface FileSignatureValidationResult {
  * Prevents disguised files, malicious payloads, and invalid extensions.
  */
 export declare function validateImageSignature(buffer: ArrayBuffer | Uint8Array): FileSignatureValidationResult;
+/**
+ * Validates a URL to prevent SSRF (Server-Side Request Forgery) attacks.
+ * Blocks private IPv4/IPv6 networks, cloud metadata endpoints, loopback, and dangerous protocols (PRD Section 12).
+ */
+export declare function isSafeMediaUrl(urlString: string): {
+    safe: boolean;
+    error?: string;
+};

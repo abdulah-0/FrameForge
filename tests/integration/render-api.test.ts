@@ -109,4 +109,26 @@ describe("Render Worker HTTP API Integration", () => {
     assert.strictEqual(job.id, data.jobId);
     assert.strictEqual(job.projectId, project.projectId);
   });
+
+  it("blocks SSRF attack attempts against private IP addresses or AWS metadata", async () => {
+    const project = createDefaultProject({
+      title: "SSRF Attack Test",
+      videoType: "faceless",
+    });
+    // Target AWS metadata endpoint
+    project.scenes[0].media = {
+      type: "image",
+      url: "http://169.254.169.254/latest/meta-data/",
+    };
+
+    const res = await fetch(`${API_URL}/api/render-jobs`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ project }),
+    });
+
+    assert.strictEqual(res.status, 400);
+    const body = await res.json();
+    assert.ok(body.error.includes("Security violation (SSRF Prevention)"));
+  });
 });

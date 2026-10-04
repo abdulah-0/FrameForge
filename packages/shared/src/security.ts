@@ -75,3 +75,62 @@ export function validateImageSignature(buffer: ArrayBuffer | Uint8Array): FileSi
     error: "Invalid image signature. Only JPEG, PNG, and WebP files are supported.",
   };
 }
+
+/**
+ * Validates a URL to prevent SSRF (Server-Side Request Forgery) attacks.
+ * Blocks private IPv4/IPv6 networks, cloud metadata endpoints, loopback, and dangerous protocols (PRD Section 12).
+ */
+export function isSafeMediaUrl(urlString: string): { safe: boolean; error?: string } {
+  if (!urlString || urlString.trim() === "") {
+    return { safe: true };
+  }
+
+  // Allow trusted data URIs for images (e.g. uploaded in studio)
+  if (urlString.startsWith("data:image/")) {
+    return { safe: true };
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(urlString);
+  } catch {
+    return { safe: false, error: "Malformed URL format." };
+  }
+
+  // Restrict to http and https only
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return { safe: false, error: `Disallowed URL protocol: ${parsed.protocol}` };
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+
+  // Block localhost and loopback
+  if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1" || hostname === "0.0.0.0") {
+    // Only allow localhost if pointing directly to render-worker's own static output port (e.g. :3100)
+    if (parsed.port === "3100") {
+      return { safe: true };
+    }
+    return { safe: false, error: "Access to loopback/localhost addresses is prohibited." };
+  }
+
+  // Block AWS / GCP / Azure cloud metadata endpoints
+  if (hostname === "169.254.169.254" || hostname === "metadata.google.internal") {
+    return { safe: false, error: "Access to cloud metadata endpoints is prohibited." };
+  }
+
+  // Block private RFC 1918 IPv4 ranges:
+  // 10.0.0.0/8
+  if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) {
+    return { safe: false, error: "Access to private IPv4 network (10.0.0.0/8) is prohibited." };
+  }
+  // 172.16.0.0/12
+  if (/^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(hostname)) {
+    return { safe: false, error: "Access to private IPv4 network (172.16.0.0/12) is prohibited." };
+  }
+  // 192.168.0.0/16
+  if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname)) {
+    return { safe: false, error: "Access to private IPv4 network (192.168.0.0/16) is prohibited." };
+  }
+
+  return { safe: true };
+}

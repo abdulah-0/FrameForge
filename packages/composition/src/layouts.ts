@@ -4,7 +4,7 @@ export function renderSceneHTML(scene: Scene, index: number): string {
   const headline = sanitizeText(scene.headline);
   const body = sanitizeText(scene.body || "");
   const caption = sanitizeText(scene.caption || "");
-  const mediaUrl = scene.media?.url || "";
+  const mediaUrl = sanitizeText(scene.media?.url || "");
   const mediaType = scene.media?.type || "none";
 
   let mediaTag = "";
